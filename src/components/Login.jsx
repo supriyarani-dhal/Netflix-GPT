@@ -1,30 +1,36 @@
+/* eslint-disable no-unused-vars */
 import { useRef, useState } from "react";
 import Header from "./Header";
 import { validate } from "../utils/validate";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
 import { auth } from "../utils/firebase";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 //import { Link } from "react-router-dom";
 
 const Login = () => {
   const [signin, setSignin] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
+  const dispatch = useDispatch();
 
+  const name = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
 
-  const handleSigninPage = () => setSignin(false);
+  const toggleSigninForm = () => setSignin(!signin);
 
-  const handleSignupPage = async () => {
+  const handleButton = () => {
     const msg = validate(email.current.value, password.current.value);
     setErrorMsg(msg);
 
-    // if (msg) {
-    //   setSignin(false);
-    //   return;
-    // } else setSignin(true);
+    if (msg) return;
 
     if (!signin) {
-      await createUserWithEmailAndPassword(
+      createUserWithEmailAndPassword(
         auth,
         email.current.value,
         password.current.value
@@ -32,17 +38,43 @@ const Login = () => {
         .then((userCredential) => {
           // Signed up
           const user = userCredential.user;
-          console.log(user);
+          updateProfile(user, {
+            displayName: name.current.value,
+            photoURL: "https://example.com/jane-q-user/profile.jpg",
+          })
+            .then(() => {
+              const { uid, email, displayName } = auth;
+              dispatch(
+                addUser({ uid: uid, email: email, displayName: displayName })
+              );
+            })
+            .catch((error) => {
+              setErrorMsg(error.message);
+            });
           // ...
         })
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
-          console.log(errorCode + errorMessage);
-          // ..
+          setErrorMsg(errorMessage);
+        });
+    } else {
+      signInWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          const user = userCredential.user;
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMsg(errorMessage);
         });
     }
   };
+
   return (
     <div>
       <Header />
@@ -52,34 +84,46 @@ const Login = () => {
       <div className="flex justify-center">
         <form
           onSubmit={(e) => e.preventDefault()}
-          className="bg-black/80 w-1/3 pl-12 h-full absolute mt-32"
+          className="bg-black/80 w-1/4 px-9 h-4/5 absolute mt-32"
         >
-          <h1 className="text-4xl my-10 font-bold text-white">
+          <h1 className="text-3xl my-8 font-bold text-white">
             {signin ? "Sign in" : "Sign up"}
           </h1>
+          {!signin && (
+            <input
+              className="w-full h-12 bg-inherit rounded-md mb-7 p-2 text-white"
+              type="text"
+              placeholder="Name"
+              ref={name}
+              required
+            />
+          )}
           <input
-            className="w-4/5 h-12 bg-inherit rounded-md p-3 mb-10 text-white"
+            className="w-full h-12 bg-inherit rounded-md p-2 mb-7 text-white"
             type="email"
             placeholder="Email or phone number"
+            required
             ref={email}
           />
           <input
-            className="w-4/5 h-12 bg-inherit rounded-md p-3 mb-10 text-white"
+            className="w-full h-12 bg-inherit rounded-md p-3 mb-7 text-white"
             type="password"
             placeholder="Password"
+            required
             ref={password}
           />
           {!signin && (
             <input
-              className="w-4/5 h-12 bg-inherit rounded-md p-3 text-white"
+              className="w-full h-12 bg-inherit rounded-md p-3 text-white"
               type="password"
               placeholder="Re enter the Password"
+              required
             />
           )}
           <p className="text-red-600 text-md">{errorMsg}</p>
           <button
-            onClick={handleSignupPage}
-            className="mt-10 w-4/5 h-12 text-center bg-red-600 rounded-md text-white font-bold text-xl"
+            onClick={handleButton}
+            className="mt-7 w-full h-12 text-center bg-red-600 rounded-md text-white font-bold text-xl"
           >
             {signin ? "Sign in" : "Get Started >"}
           </button>
@@ -88,17 +132,16 @@ const Login = () => {
             <span className="ml-40">Need help?</span>
           </p>
 
-          {signin && (
-            <p className="text-gray-300  mt-10 text-lg">
-              Don&#39;t have an account?
-              <span
-                onClick={handleSigninPage}
-                className="ml-2 hover:text-red-600 cursor-pointer"
-              >
-                Sign up now
-              </span>
-            </p>
-          )}
+          <p className="text-gray-300  mt-4 text-lg">
+            {signin ? "Don't have an account?" : "Already have an account?"}
+            <span
+              onClick={toggleSigninForm}
+              className="ml-2 hover:text-red-600 cursor-pointer"
+            >
+              {signin ? "Sign up now" : "Sign in here"}
+            </span>
+          </p>
+
           <div className="text-white text-lg">
             <input className="w-6 bg-red-600 cursor-pointer" type="checkbox" />
             Remember me
