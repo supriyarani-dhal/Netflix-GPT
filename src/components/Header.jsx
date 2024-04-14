@@ -2,19 +2,23 @@
 import { useEffect, useState } from "react";
 import { auth } from "../utils/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { addUser, removeUser } from "../utils/userSlice";
 import { useDispatch, useSelector } from "react-redux";
-import { LOGO_URL, USER_AVTAR_URL } from "../utils/constants";
+import { LANGUAGES, LOGO_URL, USER_AVTAR_URL } from "../utils/constants";
+import { toggleGptSearch } from "../utils/GPTSlice";
+import { changeLang } from "../utils/configSlice";
 
 const Header = () => {
   const [display, setDisplay] = useState(false);
+  const [showGPT, setShowGPT] = useState(false);
   const navigate = useNavigate();
   const user = useSelector((store) => store.user);
   const dispatch = useDispatch();
+  const gptSearch = useSelector((store) => store.gpt.showGptSearch);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, (user) => {
       if (user) {
         const { uid, email, displayName } = user;
         dispatch(addUser({ uid: uid, email: email, displayName: displayName }));
@@ -26,10 +30,13 @@ const Header = () => {
     });
 
     //unsubscribe this events when our component is unmounted
-    return unsubscribe();
+    // return unsubscribe();
   }, []);
 
   const handleToggleMenu = () => setDisplay(true);
+  const handleToggleGPT = () => setShowGPT(true);
+  const handleGptSearch = () => dispatch(toggleGptSearch());
+  const handleLangChange = (e) => dispatch(changeLang(e.target.value));
 
   const handleSignout = () => {
     signOut(auth)
@@ -46,10 +53,28 @@ const Header = () => {
       </div>
       {user && (
         <div className="pt-4 w-1/6 text-white text-lg">
-          <div className=" flex justify-between">
-            <i className="fa-solid fa-magnifying-glass pt-2"></i>
-            <span>Children</span>
-            <i className="fa-regular fa-bell pt-2"></i>
+          <div className=" flex justify-end">
+            <button
+              className="mr-5"
+              onMouseOver={handleToggleGPT}
+              onMouseOut={() => setShowGPT(false)}
+              onClick={handleGptSearch}
+            >
+              <i className="fa-solid fa-magnifying-glass pt-2"></i>
+            </button>
+            {gptSearch && (
+              <select
+                className="bg-black/75 p-2 rounded-md mr-5"
+                onChange={handleLangChange}
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang.id} value={lang.id}>
+                    {lang.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <i className="fa-regular fa-bell pt-2 mr-5"></i>
             <div>
               <button className="flex">
                 <img
@@ -67,6 +92,11 @@ const Header = () => {
               </button>
             </div>
           </div>
+          {showGPT && (
+            <button className="w-32 bg-black/80 text-lg p-2 mt-2 rounded">
+              {showGPT ? "Netflix" : "GPT search"}
+            </button>
+          )}
           {display && (
             <ul
               className="w-40 bg-black/80 text-base p-3 ml-20 mt-4"
