@@ -24,3 +24,5 @@ export const LANGUAGES = [
   { id: "oriya", name: "Odia" },
   { id: "spanish", name: "Spanish" },
 ];
+
+export const OPENAI_KEY = "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";
