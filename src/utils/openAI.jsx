@@ -1,8 +1,7 @@
 import OpenAI from "openai";
-import { OPENAI_KEY } from "./secrets";
 
 const openai = new OpenAI({
-  apiKey: OPENAI_KEY, // This is the default and can be omitted
+  apiKey: import.meta.env.VITE_OPENAI_KEY, // This is the default and can be omitted
   dangerouslyAllowBrowser: true,
 });
 
